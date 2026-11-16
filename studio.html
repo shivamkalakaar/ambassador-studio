@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ambassador Studio prototype</title>
+<meta name="description" content="Click through the Ambassador Studio prototype: Coupa Café's brief goes in, Cocoa's ads and social posts come out.">
+<link rel="icon" href="img/mascot-coffee-run.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,500..800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+<style>
+  .intro { padding: clamp(36px, 6vw, 72px) 0 clamp(24px, 3vw, 36px); display: flex; flex-direction: column; gap: 18px; }
+  .intro h1 { font-size: clamp(40px, 6vw, 76px); max-width: 16ch; }
+
+  /* App window */
+  .app { border: 1px solid var(--line); border-radius: 22px; overflow: hidden; background: var(--bg-2); margin-bottom: clamp(56px, 8vw, 104px); }
+  .appbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; padding: 14px 20px; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .appbar .client { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+  .appbar .client i { width: 10px; height: 10px; border-radius: 50%; background: var(--r4); }
+  .appbar .meta { color: var(--muted); }
+  .body { display: grid; grid-template-columns: 250px minmax(0, 1fr); min-height: 640px; }
+  @media (max-width: 860px) { .body { grid-template-columns: 1fr; } }
+
+  .rail { border-right: 1px solid var(--line); padding: 14px; display: flex; flex-direction: column; gap: 4px; }
+  @media (max-width: 860px) { .rail { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); scrollbar-width: none; } }
+  .rail button {
+    all: unset; cursor: pointer; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; align-items: center;
+    padding: 10px 12px; border-radius: 12px; color: var(--muted); font-weight: 600; font-size: 15px; white-space: nowrap;
+  }
+  .rail button:hover { background: var(--bg-3); color: var(--ink); }
+  .rail button[aria-selected="true"] { background: var(--ink); color: var(--bg); }
+  .rail .n { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; border: 1.5px solid currentColor; font-size: 13px; }
+  .rail button.done .n { background: var(--r4); border-color: var(--r4); color: #fff; }
+  .rail small { display: block; font-weight: 400; font-size: 12px; opacity: .8; }
+  @media (max-width: 860px) { .rail small { display: none; } .rail button { flex: none; grid-template-columns: 26px auto; padding: 8px 12px 8px 8px; } }
+
+  .panel { padding: clamp(20px, 3.5vw, 40px); }
+  .panel[hidden] { display: none; }
+  .phead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px 24px; margin-bottom: 28px; }
+  .phead h2 { font-size: clamp(30px, 3.4vw, 44px); }
+  .phead p { color: var(--muted); max-width: 52ch; }
+  .pfoot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--line); }
+  .pfoot .hint { color: var(--muted); font-size: 14px; }
+
+  /* 1. Brief */
+  .form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 20px; }
+  @media (max-width: 640px) { .form { grid-template-columns: 1fr; } }
+  .field.full { grid-column: 1 / -1; }
+  .field label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+  .field input { width: 100%; min-height: 46px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: 16px var(--body); }
+  .field input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .files { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+  .file { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); font-size: 14px; }
+  .file svg { color: var(--accent); }
+  .drop { display: inline-flex; align-items: center; padding: 8px 12px; border-radius: 10px; border: 1.5px dashed var(--line); color: var(--muted); font-size: 14px; }
+
+  /* 2. Character */
+  .choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+  @media (max-width: 640px) { .choices { grid-template-columns: 1fr; } }
+  .choice { border: 2px solid var(--line); border-radius: 18px; overflow: hidden; background: var(--bg); }
+  .choice.chosen { border-color: var(--accent); }
+  .choice img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+  .choice .cb { padding: 16px 18px 20px; display: flex; flex-direction: column; gap: 6px; }
+  .choice .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .choice p { color: var(--muted); font-size: 15px; }
+  .badge { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+  .chosen .badge { background: var(--accent); border-color: var(--accent); color: #14100E; }
+  .traits { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .traits span { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: var(--bg-3); }
+
+  /* 3. Studio */
+  .progress { height: 8px; border-radius: 4px; background: var(--bg-3); overflow: hidden; margin-bottom: 18px; }
+  .progress i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--r1), var(--r2), var(--r3), var(--r4), var(--r5)); transition: width .5s ease; }
+  .jobs { list-style: none; margin: 0; padding: 0; }
+  .jobs li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .jobs .dot { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; border: 1.5px solid var(--line); color: var(--muted); font-size: 13px; font-weight: 700; }
+  .jobs li span.d { color: var(--muted); font-size: 15px; display: block; }
+  .jobs .st { font-size: 13px; font-weight: 700; color: var(--muted); }
+  .jobs li.working .dot { border-color: var(--accent); color: var(--accent); }
+  .jobs li.working .st { color: var(--accent); }
+  .jobs li.done .dot { background: var(--r4); border-color: var(--r4); color: #fff; }
+  .jobs li.done .st { color: var(--ink); }
+
+  /* 4. Ads */
+  .out { display: grid; grid-template-columns: repeat(2, minmax(0, 260px)) minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 1000px) { .out { grid-template-columns: repeat(2, minmax(0, 1fr)); } .out .side { grid-column: 1 / -1; } }
+  @media (max-width: 520px) { .out { grid-template-columns: 1fr; } }
+  .out .spot figcaption { padding-top: 10px; }
+  .out .spot h3 { font-size: 20px; }
+  .side { display: flex; flex-direction: column; gap: 14px; }
+  .side .k { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips span { font-size: 13px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); }
+  .side .mini { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .side .mini .player { border-radius: 12px; }
+  .side .mini p { font-size: 13px; color: var(--muted); margin-top: 6px; }
+
+  /* 5. Socials */
+  .soc { display: grid; grid-template-columns: repeat(2, minmax(0, 320px)); gap: 28px; align-items: start; }
+  .soc .plan { grid-column: 1 / -1; margin-top: 12px; }
+  @media (max-width: 680px) { .soc { grid-template-columns: 1fr; } .soc .phone { margin: 0 auto; } }
+  .soc .phone { max-width: 320px; }
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 22px; }
+  @media (max-width: 520px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .stat { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: var(--bg); }
+  .stat b { display: block; font: 750 26px/1.1 var(--display); font-stretch: 80%; }
+  .stat span { font-size: 13px; color: var(--muted); }
+  .cal { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+  .cal th { text-align: left; font-weight: 600; color: var(--muted); padding: 6px; }
+  .cal td { padding: 4px; vertical-align: top; }
+  .cal td:first-child { color: var(--muted); font-weight: 600; width: 58px; }
+  .slot { border-radius: 8px; padding: 7px 8px; background: var(--bg); border: 1px solid var(--line); border-left: 3px solid var(--muted); line-height: 1.3; }
+  .slot small { display: block; color: var(--muted); }
+  .slot.posted { border-left-color: var(--r4); }
+  .slot.sched { border-left-color: var(--r5); }
+  .slot.review { border-left-color: var(--r2); }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; font-size: 13px; color: var(--muted); }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .plan h3 { font-size: 20px; margin-bottom: 12px; }
+  .plan .hd { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .plan .hd h3 { margin: 0; }
+</style>
+</head>
+<body>
+<div class="stripe" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+
+<header class="site">
+  <div class="wrap">
+    <a class="logo" href="index.html">Ambassador Studio</a>
+    <nav class="nav" aria-label="Pages">
+      <a href="index.html">The ads</a>
+      <a href="studio.html" aria-current="page">Prototype</a>
+      <a href="index.html#pricing">Pricing</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="intro">
+    <p class="kicker">Prototype</p>
+    <h1>From Coupa’s brief to a posted ad.</h1>
+    <p class="lede">This is the studio a client would use. Coupa’s real brief is filled in. Click through the five steps to watch it turn into Cocoa, the ads and a month of posts.</p>
+  </div>
+
+  <div class="app">
+    <div class="appbar">
+      <span class="client"><i aria-hidden="true"></i>Coupa Café</span>
+      <span class="meta">December plan · 12 ads · English and Spanish</span>
+    </div>
+    <div class="body">
+      <div class="rail" role="tablist" aria-label="Steps" aria-orientation="vertical">
+        <button role="tab" id="t1" aria-controls="p1" aria-selected="true"><span class="n">1</span><span>Brief<small>What Coupa told us</small></span></button>
+        <button role="tab" id="t2" aria-controls="p2" aria-selected="false" tabindex="-1"><span class="n">2</span><span>Character<small>Pick the face</small></span></button>
+        <button role="tab" id="t3" aria-controls="p3" aria-selected="false" tabindex="-1"><span class="n">3</span><span>Studio<small>Production</small></span></button>
+        <button role="tab" id="t4" aria-controls="p4" aria-selected="false" tabindex="-1"><span class="n">4</span><span>Ads<small>What came out</small></span></button>
+        <button role="tab" id="t5" aria-controls="p5" aria-selected="false" tabindex="-1"><span class="n">5</span><span>Socials<small>Posting and replies</small></span></button>
+      </div>
+
+      <!-- 1. Brief -->
+      <section class="panel" role="tabpanel" id="p1" aria-labelledby="t1">
+        <div class="phead">
+          <h2>The brief</h2>
+          <p>A short form and a few photos. Coupa filled this in once.</p>
+        </div>
+        <div class="form">
+          <div class="field"><label for="f1">Company</label><input id="f1" value="Coupa Café, family owned since 2004"></div>
+          <div class="field"><label for="f3">Who buys</label><input id="f3" value="Students, faculty and staff on campus"></div>
+          <div class="field full"><label for="f2">What you sell</label><input id="f2" value="Locally roasted coffee, hot chocolate, arepas, pastries"></div>
+          <div class="field"><label for="f4">How it should feel</label><input id="f4" value="Warm and playful, with a bit of Venezuela"></div>
+          <div class="field"><label for="f5">Where the ads run</label><input id="f5" value="Instagram, TikTok, screens in the café"></div>
+          <div class="field"><label for="f6">Languages</label><input id="f6" value="English and Spanish"></div>
+          <div class="field"><label for="f7">Goal</label><input id="f7" value="More people coming in for coffee"></div>
+          <div class="field full"><label for="f8">Social accounts</label><input id="f8" value="Start a new account for the mascot"></div>
+        </div>
+        <div class="files" aria-label="Photos Coupa shared">
+          <span class="file"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 16l5-5 4 4 3-3 6 6" stroke="currentColor" stroke-width="2"/></svg>cafe-counter.jpg</span>
+          <span class="file"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 16l5-5 4 4 3-3 6 6" stroke="currentColor" stroke-width="2"/></svg>menu-board.jpg</span>
+          <span class="file"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 16l5-5 4 4 3-3 6 6" stroke="currentColor" stroke-width="2"/></svg>spicy-maya.jpg</span>
+          <span class="file"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 16l5-5 4 4 3-3 6 6" stroke="currentColor" stroke-width="2"/></svg>logo.png</span>
+          <span class="drop">+ Add photos</span>
+        </div>
+        <div class="pfoot"><span class="hint">Step 1 of 5</span><button class="btn btn-solid" type="button" data-go="2">Send brief</button></div>
+      </section>
+
+      <!-- 2. Character -->
+      <section class="panel" role="tabpanel" id="p2" aria-labelledby="t2" hidden>
+        <div class="phead">
+          <h2>Pick the face of the brand</h2>
+          <p>We drew up two characters from the brief. Coupa keeps the one it picks for good.</p>
+        </div>
+        <div class="choices">
+          <article class="choice chosen">
+            <img src="img/mascot-big-city.jpg" alt="Cocoa, a felt squirrel with a rainbow hair clip and a Coupa Café apron" style="object-position:center 62%">
+            <div class="cb">
+              <div class="row"><h3>Cocoa, the mascot</h3><span class="badge">Picked</span></div>
+              <p>A felt squirrel with the rainbow from Coupa’s logo in its hair and a café apron.</p>
+              <div class="traits"><span>Curious</span><span>A bit impatient in line</span><span>Bilingual</span></div>
+            </div>
+          </article>
+          <article class="choice">
+            <img src="img/emily-counter-1.jpg" alt="Emily, an AI-generated woman, at the café counter">
+            <div class="cb">
+              <div class="row"><h3>Emily, a person</h3><span class="badge">Tried first</span></div>
+              <p>An AI-generated woman, made from scratch. She looks real, but felt less warm for a café.</p>
+              <div class="traits"><span>Polished</span><span>Realistic</span></div>
+            </div>
+          </article>
+        </div>
+        <p class="note">Every character is original. We check that it doesn’t look like a real person or another brand’s character.</p>
+        <div class="pfoot"><span class="hint">Step 2 of 5</span><button class="btn btn-solid" type="button" data-go="3">Approve Cocoa</button></div>
+      </section>
+
+      <!-- 3. Studio -->
+      <section class="panel" role="tabpanel" id="p3" aria-labelledby="t3" hidden>
+        <div class="phead">
+          <h2>In the studio</h2>
+          <p>AI does the production. Someone on our team watches every ad before Coupa sees it.</p>
+        </div>
+        <div class="progress" aria-hidden="true"><i id="bar"></i></div>
+        <ol class="jobs" id="jobs">
+          <li><span class="dot">1</span><span><strong>Read the brief</strong><span class="d">Who buys, what they buy, how it should feel</span></span><span class="st">Waiting</span></li>
+          <li><span class="dot">2</span><span><strong>Lock the character</strong><span class="d">Cocoa’s look, voice and personality sheet</span></span><span class="st">Waiting</span></li>
+          <li><span class="dot">3</span><span><strong>Write the scripts</strong><span class="d">12 stories, 10 to 30 seconds each</span></span><span class="st">Waiting</span></li>
+          <li><span class="dot">4</span><span><strong>Make the video</strong><span class="d">Cut for phones and for screens</span></span><span class="st">Waiting</span></li>
+          <li><span class="dot">5</span><span><strong>Add sound and captions</strong><span class="d">Captions so it works on mute</span></span><span class="st">Waiting</span></li>
+          <li><span class="dot">6</span><span><strong>Label and review</strong><span class="d">AI label on, checked by a person</span></span><span class="st">Waiting</span></li>
+        </ol>
+        <div class="pfoot"><span class="hint" id="studioHint">Working…</span><button class="btn btn-solid" type="button" data-go="4" id="toAds">See the ads</button></div>
+      </section>
+
+      <!-- 4. Ads -->
+      <section class="panel" role="tabpanel" id="p4" aria-labelledby="t4" hidden>
+        <div class="phead">
+          <h2>What came out</h2>
+          <p>Cocoa’s first two ads, ready for Coupa to approve. Press play with sound on.</p>
+        </div>
+        <div class="out">
+          <figure class="spot">
+            <div class="player tall">
+              <video src="videos/mascot-coffee-run.mp4" poster="img/mascot-coffee-run.jpg" controls playsinline preload="none" aria-label="Ad: The coffee run"></video>
+              <span class="tag">AI-generated</span>
+            </div>
+            <figcaption><div class="title"><h3>The coffee run</h3><span>0:28</span></div></figcaption>
+          </figure>
+          <figure class="spot">
+            <div class="player tall">
+              <video src="videos/mascot-big-city.mp4" poster="img/mascot-big-city.jpg" controls playsinline preload="none" aria-label="Ad: The big city"></video>
+              <span class="tag">AI-generated</span>
+            </div>
+            <figcaption><div class="title"><h3>The big city</h3><span>0:31</span></div></figcaption>
+          </figure>
+          <div class="side">
+            <div><p class="k">Delivered as</p>
+              <div class="chips"><span>9:16 for phones</span><span>16:9 for café screens</span><span>Captions on</span><span>AI label on</span></div>
+            </div>
+            <div><p class="k">Coming in December</p>
+              <div class="chips"><span>Spanish versions</span><span>10 more ads</span><span>Stories cut from each ad</span></div>
+            </div>
+            <div><p class="k">Earlier test: Emily</p>
+              <div class="mini">
+                <div><div class="player wide"><video src="videos/emily-counter-1.mp4" poster="img/emily-counter-1.jpg" controls playsinline preload="none" aria-label="Emily, take 1"></video></div><p>Take 1 · 0:12</p></div>
+                <div><div class="player wide"><video src="videos/emily-counter-2.mp4" poster="img/emily-counter-2.jpg" controls playsinline preload="none" aria-label="Emily, take 2"></video></div><p>Take 2 · 0:12</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="pfoot"><span class="hint">Step 4 of 5</span><button class="btn btn-solid" type="button" data-go="5">Approve and schedule</button></div>
+      </section>
+
+      <!-- 5. Socials -->
+      <section class="panel" role="tabpanel" id="p5" aria-labelledby="t5" hidden>
+        <div class="phead">
+          <h2>Cocoa’s social account</h2>
+          <p>We post the ads, cut stories from them and answer comments in Cocoa’s voice. Coupa approves each post first.</p>
+        </div>
+        <p style="margin:-10px 0 22px"><span class="example">Example numbers: concept mockup</span></p>
+        <div class="soc">
+          <div class="phone" aria-label="Mockup of Cocoa's profile">
+            <div class="screen">
+              <div class="bar"><span>9:41</span><span>@cocoa.at.coupa</span><span>•••</span></div>
+              <div class="profile">
+                <div class="top">
+                  <div class="avatar"><img src="img/post-1.jpg" alt=""></div>
+                  <div class="counts">
+                    <div><b>24</b><span>posts</span></div>
+                    <div><b>3,412</b><span>followers</span></div>
+                    <div><b>18</b><span>following</span></div>
+                  </div>
+                </div>
+                <p class="name">Cocoa</p>
+                <p class="bio">Coupa Café’s mascot. Usually in line for coffee.<br><small>AI-generated character</small></p>
+              </div>
+              <div class="grid3">
+                <div class="cell"><img src="img/mascot-coffee-run.jpg" alt="" style="object-position:center 60%"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg></div>
+                <div class="cell"><img src="img/post-5.jpg" alt=""></div>
+                <div class="cell"><img src="img/post-3.jpg" alt=""></div>
+                <div class="cell"><img src="img/mascot-big-city.jpg" alt="" style="object-position:center 40%"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg></div>
+                <div class="cell"><img src="img/post-2.jpg" alt=""></div>
+                <div class="cell"><img src="img/post-8.jpg" alt=""></div>
+                <div class="cell"><img src="img/post-4.jpg" alt=""></div>
+                <div class="cell"><img src="img/post-7.jpg" alt=""></div>
+                <div class="cell"><img src="img/post-6.jpg" alt=""></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="phone" aria-label="Mockup of one of Cocoa's posts">
+            <div class="screen">
+              <div class="post-head"><div class="avatar sm"><img src="img/post-1.jpg" alt=""></div><div>cocoa.at.coupa<small>Coupa Café, Stanford GSB</small></div></div>
+              <div class="post-media"><video id="postVideo" src="videos/mascot-coffee-run.mp4" poster="img/mascot-coffee-run.jpg" muted loop playsinline preload="none" aria-label="The coffee run, as a post"></video></div>
+              <div class="actions">
+                <button type="button" id="like" aria-pressed="false" aria-label="Like"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></button>
+                <button type="button" aria-label="Comment"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.1A8 8 0 1 1 20 12z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></button>
+                <button type="button" aria-label="Share"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M21 3L10 14M21 3l-7 18-4-7-7-4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></button>
+              </div>
+              <p class="likes"><span id="likeCount">1,284</span> likes</p>
+              <p class="caption"><b>cocoa.at.coupa</b>The line is part of the ritual. ☕ #AIgenerated</p>
+              <ul class="comments">
+                <li><b>latte.line</b>the little frown when the line doesn’t move 😭</li>
+                <li><b>gsb.firstyear</b>this is me at 8:58 before class</li>
+                <li><b>study.break.club</b>is there a Spanish one?</li>
+                <li><b>cocoa.at.coupa</b>¡Sale el viernes! 🐿️</li>
+              </ul>
+              <p class="muted-sm">View all 96 comments · 2 days ago</p>
+            </div>
+          </div>
+
+          <div class="plan">
+            <div class="stats" aria-label="Example results, last 30 days">
+              <div class="stat"><b>48.2K</b><span>Reach</span></div>
+              <div class="stat"><b>6,930</b><span>Likes</span></div>
+              <div class="stat"><b>812</b><span>Saves</span></div>
+              <div class="stat"><b>+640</b><span>New followers</span></div>
+            </div>
+            <div class="hd"><h3>December posting plan</h3><span class="example">Example plan</span></div>
+            <table class="cal">
+              <thead><tr><th scope="col"><span class="sr" style="position:absolute;left:-9999px">Week</span></th><th scope="col">Mon</th><th scope="col">Wed</th><th scope="col">Fri</th></tr></thead>
+              <tbody>
+                <tr><td>Week 1</td><td><div class="slot posted">The coffee run<small>Reel</small></div></td><td><div class="slot posted">Line at noon<small>Story</small></div></td><td><div class="slot posted">Cocoa’s cup<small>Photo</small></div></td></tr>
+                <tr><td>Week 2</td><td><div class="slot posted">The big city<small>Reel</small></div></td><td><div class="slot posted">Postcard home<small>Story</small></div></td><td><div class="slot sched">The coffee run, Spanish<small>Reel</small></div></td></tr>
+                <tr><td>Week 3</td><td><div class="slot review">Spicy Maya<small>Reel</small></div></td><td><div class="slot review">Arepas on the menu<small>Story</small></div></td><td><div class="slot">Finals week<small>Photo</small></div></td></tr>
+                <tr><td>Week 4</td><td><div class="slot">Ad 4<small>Reel</small></div></td><td><div class="slot">Behind the felt<small>Story</small></div></td><td><div class="slot">Holiday hours<small>Photo</small></div></td></tr>
+              </tbody>
+            </table>
+            <div class="legend"><span><i style="background:var(--r4)"></i>Posted</span><span><i style="background:var(--r5)"></i>Scheduled</span><span><i style="background:var(--r2)"></i>Waiting for Coupa</span><span><i style="background:var(--muted)"></i>Draft</span></div>
+          </div>
+        </div>
+        <div class="pfoot"><span class="hint">Step 5 of 5. That’s the whole loop, every month.</span><a class="btn" href="index.html">Back to the ads</a></div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <p>Ambassador Studio is a student project for STRAMGT308 at the Stanford Graduate School of Business, by Shivam Kalkar and team.</p>
+    <p>Coupa Café is a demo client. This site is not affiliated with or endorsed by Coupa Café or Stanford. All characters and videos are AI-generated.</p>
+  </div>
+</footer>
+
+<script>
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const tabs = [...document.querySelectorAll('[role="tab"]')];
+  const panels = tabs.map(t => document.getElementById(t.getAttribute('aria-controls')));
+  const videos = [...document.querySelectorAll('video')];
+  let timer = null, current = 1;
+
+  function show(n, focus) {
+    n = Math.min(Math.max(n, 1), tabs.length);
+    current = n;
+    tabs.forEach((t, i) => {
+      const on = i === n - 1;
+      t.setAttribute('aria-selected', String(on));
+      t.tabIndex = on ? 0 : -1;
+      t.classList.toggle('done', i < n - 1);
+      panels[i].hidden = !on;
+    });
+    videos.forEach(v => { if (!panels[n - 1].contains(v)) v.pause(); });
+    if (focus) tabs[n - 1].focus();
+    history.replaceState(null, '', '#step-' + n);
+    if (n === 3) runStudio();
+    const pv = document.getElementById('postVideo');
+    if (n === 5 && !reduceMotion) pv.play().catch(() => {});
+  }
+
+  function runStudio() {
+    const items = [...document.querySelectorAll('#jobs li')];
+    const bar = document.getElementById('bar');
+    const hint = document.getElementById('studioHint');
+    const btn = document.getElementById('toAds');
+    clearInterval(timer);
+    const tick = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const set = (done) => {
+      items.forEach((li, i) => {
+        li.classList.toggle('done', i < done);
+        li.classList.toggle('working', i === done);
+        li.querySelector('.st').textContent = i < done ? 'Done' : (i === done ? 'Working' : 'Waiting');
+        li.querySelector('.dot').innerHTML = i < done ? tick : String(i + 1);
+      });
+      bar.style.width = (done / items.length * 100) + '%';
+      const finished = done >= items.length;
+      hint.textContent = finished ? 'Two ads ready for review.' : 'Working…';
+      btn.disabled = !finished;
+    };
+    if (reduceMotion) { set(items.length); return; }
+    let done = 0; set(0);
+    timer = setInterval(() => { done += 1; set(done); if (done >= items.length) clearInterval(timer); }, 700);
+  }
+
+  tabs.forEach((t, i) => {
+    t.addEventListener('click', () => show(i + 1));
+    t.addEventListener('keydown', e => {
+      const keys = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 };
+      if (!(e.key in keys)) return;
+      e.preventDefault();
+      show(((i + keys[e.key] + tabs.length) % tabs.length) + 1, true);
+    });
+  });
+  document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => {
+    show(Number(b.dataset.go));
+    document.querySelector('.app').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+  }));
+
+  videos.forEach(v => v.addEventListener('play', () => {
+    videos.forEach(o => { if (o !== v && !o.paused) o.pause(); });
+  }));
+
+  // Like button on the mock post
+  const like = document.getElementById('like');
+  const count = document.getElementById('likeCount');
+  let base = 1284;
+  like.addEventListener('click', () => {
+    const on = like.getAttribute('aria-pressed') !== 'true';
+    like.setAttribute('aria-pressed', String(on));
+    count.textContent = (base + (on ? 1 : 0)).toLocaleString('en-US');
+  });
+
+  const m = location.hash.match(/^#step-(\d)$/);
+  show(m ? Number(m[1]) : 1);
+</script>
+</body>
+</html>
